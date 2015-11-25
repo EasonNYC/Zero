@@ -10,6 +10,7 @@ import fio
 class Speech:
 
     MAX_CHAR = 100
+
     def __init__(self):
         self.Q = Queue.Queue()
         self.audio = sound.Sound()

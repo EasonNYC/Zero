@@ -14,9 +14,10 @@ Eason = person.Person(1, person.names)
 
 class Zero:
     def __init__(self):
-        self.voice = speech.Speech()  # activate speech
+        self.voice = speech.Speech()  # activate speech module
         self.greet(Eason)
 
+    #runs selected modules such as stt, tts etc.
     def run(self):
         # run modules
         self.voice.run()  # run speech
