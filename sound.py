@@ -7,12 +7,34 @@ import os
 class Sound:
 
     def __init__(self):
+        self.done = False
         #path to dir which holds mp3 files (change this later)
         self.FILE_DIR = os.path.dirname(os.path.realpath(__file__))+'/'
 
         #this is needed in init for playback
         pygame.mixer.pre_init(16000, 16, 2, 4096)
         pygame.display.set_mode((200,100))
+
+    #returns exit condition
+    def isdone(self):
+        return self.done
+
+    #routines which run on every loop
+    def run(self):
+
+        #check for exit pygame condition (esc key or pressing x on pygame window)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    self.done = True
+                    break
+            elif event.type == pygame.QUIT:
+                self.done = True
+                pygame.quit()
+                break
+
+
 
     #play a list of mp3 file names
     def playMp3(self, filenames):

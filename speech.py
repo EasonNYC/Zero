@@ -130,6 +130,10 @@ class Speech:
         #print "result: " + stringvec[stringnum1]
         return stringvec
 
+    #returns whether we are done or not
+    def isdone(self):
+        return self.audio.isdone()
+
     #workhorse function. Pass it text, it will add it to the Q.
     def say(self, text):
 
@@ -144,6 +148,8 @@ class Speech:
 
     #put in zero.run() in order to process everything to say.
     def run(self):
+
+        self.audio.run()#looks for escape keypress, etc. from pygame to exit the pygame window
 
         # say all the things we have to say
         while not self.Q.empty():

@@ -16,13 +16,16 @@ class Zero:
     def __init__(self):
         self.voice = speech.Speech()  # activate speech module
         self.greet(Eason)
+        self.done = False
 
     #runs selected modules such as stt, tts etc.
     def run(self):
         # run modules
         self.voice.run()  # run speech
 
-        # check Person queue for greeting?
+    #returns whether we are done or not
+    def isdone(self):
+        return self.voice.isdone()
 
     def greet(self, person):
         # say a greeting to the person you recognize in the camera

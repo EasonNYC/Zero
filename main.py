@@ -1,13 +1,17 @@
 # main function to start Zero.
 #
 #
+import sys
 import zero
 
 def main():
     z = zero.Zero()
-    print("hi")
-    while 1:
+    done = False
+    print("running zero")
+    while not done:
         z.run()
+        done = z.isdone()
 
 if __name__ == "__main__":
     main()
+sys.exit()
