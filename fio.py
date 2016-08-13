@@ -1,5 +1,7 @@
 # this is a basic binary object / file class (using pickle)
-# this is so we can store mp3's of text strings and get them later
+# this is so we can store wavs's of text strings and get them later. TODO: convert wav to mp3 for storage
+
+import os
 try:
     import cPickle as pickle
 except:
@@ -7,12 +9,12 @@ except:
     import pickle
 
 #global functions for pickle
-def save(obj, datafile='storage.pkl'):
+def save(obj, datafile= os.path.dirname(os.path.realpath(__file__))+'/sp_cache/storage.pkl'):
     with open(datafile, 'wb') as fileobject:
         pickle.dump(obj, fileobject)
 
 
-def load(datafile='storage.pkl'):
+def load(datafile=os.path.dirname(os.path.realpath(__file__))+'/sp_cache/storage.pkl'):
     mydata = {}
     with open(datafile, 'rb') as f:
         mydata = pickle.load(f)
@@ -32,10 +34,10 @@ class Fio:
             self.mytext = load() #call main load function above for pickle
             print "speech library loaded"
         except:
-            print "speech library failed to load"
+            print "speech library failed to load or does not exist"
 
     def printme(self):
-        print "[spchlib]Contents:" + str(self.mytext)
+        print "[spchlib] Contents:" + str(self.mytext)
 
     def exists(self,sentence):
         return sentence in self.mytext

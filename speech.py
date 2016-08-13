@@ -1,170 +1,120 @@
+# coding=utf-8
 import time
 import Queue
 import sound
 import fio
-# This is Zero's speech process class, which allows him to say things using the say() function.
-# All of the things Zero want's to say are stored int a deque called Q. And then permanently stored in a
-# pickle file for retrieval. If zero has said something before, he wont use google tts.
+import requests
+import os
+# Zero's speech process class, which allows Zero to say things using the say() function.
+# All of the things Zero want's to say are stored in a deque (Q) and then permanently stored in a
+# pickle file for retrieval.
 #
 
-class Speech:
+IPADDRESS = '192.168.1.14'
+PORT = '59125'
+ttswavfile = 'tts.wav'
 
-    MAX_CHAR = 100
+class Speech:
 
     def __init__(self):
         self.Q = Queue.Queue()
         self.audio = sound.Sound()
         self.speechlib = fio.Fio()
+        #self.speechlib.clear()
 
-        self.speechlib.clear()
-
-    # returns a vector of 100 char max strings of text to say.
+    #return just the text for now.
     def process(self, text):
-
-
-        # parse down the text if greater than 100 chars
-        if len(text) > self.MAX_CHAR:
-
-            # split the text into sentences and put it into a vector
-            stringvec = self.splitup(text)
-
-            # for each string the stringvec
-            for stringnum in range(0, len(stringvec)):
-
-                # save next string
-                nex = stringnum + 1
-
-                #print "processing: " + stringvec[stringnum]
-
-                # if this string is greater than 100, split it into 2 strings.
-                if len(stringvec[stringnum]) > self.MAX_CHAR:
-
-                    # chop it into a vector of words
-                    wordvec = self.chopup(stringvec[stringnum])
-
-                    # count up the chars of each word until you get to 100 chars
-                    curstring = ''
-                    for x in wordvec:
-                        wordlength = len(x) + 1
-                        if (len(curstring) + wordlength) <= self.MAX_CHAR:
-                            curstring += x + ' '
-                    n = len(curstring) + 1
-
-                    # split the line into two strings of less than 100chars, push both to our main vector.
-                    newstrvec = [stringvec[stringnum][i:i + n] for i in range(0, len(stringvec[stringnum]), n+1)]  # start0,stop(strlen),stepN
-
-                    print("creating new string(1)[" + str(len(newstrvec[0])) + " chars]: " + newstrvec[0])
-                    print("creating new string(2)[" + str(len(newstrvec[1])) + " chars]: " + newstrvec[1])
-
-                    # insert them in backwards order so they are dispolayed properly
-                    stringvec.insert(nex, newstrvec[1])  # (where to insert,  string to insert)
-                    stringvec.insert(nex, newstrvec[0])
-
-                    # and delete the old one
-                    stringvec.remove(stringvec[stringnum])
-
-                # else if the next string is not the final string and if this string and the next together are < than 100 chars long
-                else:
-                    try:
-
-                        if (stringvec[nex] != stringvec[-1]) or ((len(stringvec[stringnum]) + len(stringvec[nex])) <= self.MAX_CHAR):  # thisstring + prevstring
-                            stringvec = self.combine(stringvec,stringnum,nex)
-
-                        else:
-                            print stringvec[stringnum] + " fell through"
-                    except:
-                        # we are done, just process the last sentence by combining it with the previous one
-                        if (len(stringvec[stringnum]) + len(stringvec[stringnum-1])) <= self.MAX_CHAR:
-                            stringvec = self.combine(stringvec,stringnum-1,stringnum)
-
-                        break
-
-            # print each string in the vector
-            print("#######RESULTS############")
-            print("# strings created: " + str(len(stringvec)))
-            for s in stringvec:
-                length = len(s)
-                print (str(length) + ' ' + s)
-            return stringvec
-
-        else:
-            #in case no processing needed
-            #print("#######RESULTS############")
-            #print("# strings created: NONE.")
-            #print str(len(text)) + ' ' + text
-            return [text]
-
-    #splits up a sentences
-    def splitup(self, text):
-         print("splitting: " + text)
-         stringvect = text.split(". ")
-
-         # add . back in
-         for stringnum in range(0, len(stringvect)-1):
-            stringvect[stringnum] += '.'
-
-         return stringvect
-
-    #chops up sentences into a vector of words
-    def chopup(self, text):
-        if len(text) > self.MAX_CHAR:
-            print("chopping up: " + text)
-            wordvec = text.split(" ")
-            return wordvec
         return text
 
-    # takes a vector, combines 2 sentences, returns the vector
-    def combine(self, stringvec, stringnum1, stringnum2):
-        #print "combining: " + stringvec[stringnum1] + " [AND] " + stringvec[stringnum2]
+    #The workhorse. Add things to say to the speech Q.
+    def say(self, text):
 
-        # combine both strings
-        newstring = stringvec[stringnum1] + " " + stringvec[stringnum2]
+        #process the text (TODO)
+        #vec = self.process(text)
 
-        # insert them into the vector
-        stringvec.insert(stringnum2 + 1, newstring)
+        self.Q.put([text])
+        print self.Q
 
-        # remove the old strings
-        stringvec.remove(stringvec[stringnum1])
-        stringvec.remove(stringvec[stringnum1])
+    def splitup(self, text):
+        print("splitting: " + text)
+        stringvect = text.split(". ")
 
-        #print "result: " + stringvec[stringnum1]
-        return stringvec
+        # add . back in
+        for stringnum in range(0, len(stringvect) - 1):
+            stringvect[stringnum] += '.'
 
-    #returns whether we are done or not
+        return stringvect
+
+    # returns whether we have detected the escape key pressed are done or not
     def isdone(self):
         return self.audio.isdone()
 
-    #workhorse function. Pass it text, it will add it to the Q.
-    def say(self, text):
-
-        #process the text
-        vec = self.process(text)
-
-        if not vec:
-            print "nonetype error"
-        else:
-            for string in vec:
-                self.Q.put([string])
-
-    #put in zero.run() in order to process everything to say.
+    #run Zero's text to speech module
     def run(self):
 
-        self.audio.run()#looks for escape keypress, etc. from pygame to exit the pygame window
+        self.audio.run()#looks for escape keypress, etc. from pygame allowing you to exit the pygame window
 
-        # say all the things we have to say
+        # say all the things in the speech Q
         while not self.Q.empty():
             x = self.Q.get()  # get next thing to say
 
-            #play file immediatley, else add it to our string database
+            #make wav file, and add it to our speech library
             num = self.speechlib.getkey(x[0])
             if num > 0:
                 print("retreaving...")
             else:
-                #save string to dict, get tts, and save mp3
+                #save string to dict, get tts, and save wav
                 num = self.speechlib.add(x[0])
-                self.audio.saveMp3(x[0],str(num)+'.mp3')
+                self.getWavFromText(x[0], os.path.dirname(os.path.realpath(__file__))+ '/sp_cache/' +str(num) + '.wav')
 
+            #speak
             print("Zero says: " + x[0])
-            self.audio.playMp3(str(num)+'.mp3')
-            time.sleep(len(x[0]) / 15)  # allows time for Zero to finish speaking
+            self.audio.playFile(os.path.dirname(os.path.realpath(__file__))+ '/sp_cache/' + str(num) + '.wav')
+            # TODO: calculate length of sound file from samplerate and file size. sleep for that length.
             self.speechlib.printme()
+
+
+
+    def getWavFromText(self, text='hello', fname='ttswavfile.wav', lang='en_US'):
+
+        """ Uses local maryTTS server to get a wav file of
+        """
+        INPUT_TEXT = text
+        INPUT_TYPE = 'TEXT'
+        OUTPUT_TYPE = 'AUDIO'
+        AUDIO = 'WAVE_FILE'
+        LOCALE = lang
+        VOICE = 'cmu-slt-hsmm'
+
+        payload = {'VOICE': VOICE,
+                   'LOCALE': LOCALE,
+                   'AUDIO': AUDIO,
+                   'OUTPUT_TYPE': OUTPUT_TYPE,
+                   'INPUT_TYPE': INPUT_TYPE,
+                   'INPUT_TEXT': INPUT_TEXT
+                   }
+
+        # get Text to speech wav file from maryTTS server using REST api
+        attempts = 10
+        while attempts > 0:
+            try:
+                r = requests.get('http://' + IPADDRESS + ':' + PORT + '/process', params=payload)
+                # r = requests.get("http://192.168.1.14:59125/process?INPUT_TEXT=Hello+world&INPUT_TYPE=TEXT&OUTPUT_TYPE=AUDIO&AUDIO=WAVE_FILE&LOCALE=en_US")
+                print r.status_code
+                print r.headers
+                print r.url
+
+                # create the wav
+                self.audio.createWav(fname, r)
+                print "wav file created."
+
+                # get length of time for wave file  length = numbytes / (samplerate * channels * bps/8)
+                print self.audio.getWavSize(r)
+                print self.audio.getWavLength(r)  # seconds TDO: make these read wav info and not header info
+
+                break
+            except:
+                attempts -= 1
+                if attempts == 0:
+                    print "maryTTS REST timout"
+                #raise

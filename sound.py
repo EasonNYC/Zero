@@ -1,5 +1,4 @@
 import pygame
-from gtts import gTTS
 import os
 # uses google text to speech and pygame to play speech files.
 #
@@ -8,11 +7,11 @@ class Sound:
 
     def __init__(self):
         self.done = False
-        #path to dir which holds mp3 files (change this later)
-        self.FILE_DIR = os.path.dirname(os.path.realpath(__file__))+'/'
+        #path to dir which holds wav files (change this later)
+        self.FILE_DIR = os.path.dirname(os.path.realpath(__file__))+'/sp_cache/'
 
         #this is needed in init for playback
-        pygame.mixer.pre_init(16000, 16, 2, 4096)
+        pygame.mixer.pre_init(48000, 16, 1, 4096)
         pygame.display.set_mode((200,100))
 
     #returns exit condition
@@ -36,43 +35,51 @@ class Sound:
 
 
 
-    #play a list of mp3 file names
-    def playMp3(self, filenames):
+    #play a list of wav's, given their filenames
+    def playFile(self, filenames):
         pygame.mixer.init()
         clock = pygame.time.Clock()
 
+        #handle a list of files
         if isinstance(filenames, list):
             for x in filenames:
                 clock.tick(10)
                 pygame.mixer.music.load(x)
                 pygame.mixer.music.play()
-                while pygame.mixer.music.get_busy():
+                while pygame.mixer.music.get_busy() == True:
                     pygame.event.poll()
                     clock.tick(10)
+                    continue
+
+        #handle a single file
         else:
             clock.tick(10)
             pygame.mixer.music.load(filenames)
             pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
+            while pygame.mixer.music.get_busy() == True:
                 pygame.event.poll()
                 clock.tick(10)
+                continue
 
-    def saveMp3(self, text='hello', fname='line1.mp3', lang='en-uk'):
+    #create a wav file given a filename and a bunch of bytes.
+    def createWav(self, fn, rn):
+        with open(fn, 'wb') as f:
+            size = f.__sizeof__()
+            for chunk in rn.iter_content(chunk_size=1024):
+                f.write(chunk)
+            f.close()
 
-        """ Sends text to Google's text to speech service, saves it in the specified location
-        American Female en-us
-        British Female en-uk
-        """
+    #returns size of wav file in megabytes using r header
+    def getWavSize(self, rh):
+        size = rh.headers["Content-Length"]
+        return float(size) / 1000.0 / 1000.0
 
-        #limit text to 100 chars
-        length = len(text)
-        limit = min(100, length)#100 characters is the current limit.
-        text = text[0:limit]
+    #return length of speech file in seconds given a number of bytes
+    def getWavLength(self, rh):
+        size = rh.headers["Content-Length"]
+        return float(size) / (48000 * 1 * (16 / 8))
+        print time  # seconds
 
-        # get Text to speech mp3 file from google
-        gtts = gTTS(text, lang)
 
-        #save it in our speech directory
-        loc = self.FILE_DIR + fname
-        gtts.save(loc)
-        print "new mp3 created:", loc
+
+
