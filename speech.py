@@ -2,7 +2,8 @@
 import time
 import Queue
 import sound
-import fio
+import spchlib
+import zmsg
 import requests
 import os
 # Zero's speech process class, which allows Zero to say things using the say() function.
@@ -14,13 +15,20 @@ IPADDRESS = '192.168.1.14'
 PORT = '59125'
 ttswavfile = 'tts.wav'
 
-class Speech:
 
-    def __init__(self):
-        self.Q = Queue.Queue()
+
+class Speech(object):
+
+    Q = Queue.Queue()
+
+    def __init__(self, lite=False):
+        self.name = "speech"
+        self.log = zmsg.Zmsg(self.name)
         self.audio = sound.Sound()
-        self.speechlib = fio.Fio()
-        #self.speechlib.clear()
+
+        if lite is False:
+            self.speechlib = spchlib.Speechlib()
+            self.speechlib.clear()
 
     #return just the text for now.
     def process(self, text):
@@ -29,14 +37,16 @@ class Speech:
     #The workhorse. Add things to say to the speech Q.
     def say(self, text):
 
-        #process the text (TODO)
+        #process the text
         #vec = self.process(text)
+        if not (text.endswith('.') or text.endswith('?')): #TODO: put this in process()
+            text += '.'
 
-        self.Q.put([text])
-        print self.Q
+        Speech.Q.put([text])
+        #print Speech.Q
 
     def splitup(self, text):
-        print("splitting: " + text)
+        #print("splitting: " + text)
         stringvect = text.split(". ")
 
         # add . back in
@@ -55,27 +65,34 @@ class Speech:
         self.audio.run()#looks for escape keypress, etc. from pygame allowing you to exit the pygame window
 
         # say all the things in the speech Q
-        while not self.Q.empty():
-            x = self.Q.get()  # get next thing to say
+        while not Speech.Q.empty():
+            x = Speech.Q.get()  # get next thing to say
 
             #make wav file, and add it to our speech library
             num = self.speechlib.getkey(x[0])
             if num > 0:
-                print("retreaving...")
+                self.log.msg("retreaving wav of \"" + x[0] + "\" from spchlib...")
             else:
+                print " looking at " + x[0]
+                var = x[0]
+                var2 = var[0:6]
+                print "var2 :"+var2
+                if var2 is 'Warning.':
+                    print "found it!"
                 #save string to dict, get tts, and save wav
                 num = self.speechlib.add(x[0])
                 self.getWavFromText(x[0], os.path.dirname(os.path.realpath(__file__))+ '/sp_cache/' +str(num) + '.wav')
 
             #speak
-            print("Zero says: " + x[0])
+            self.log.msg("ZERO says \"" + x[0] + "\"",'INFO')
+            #print("ZERO says \"" + x[0] +"\"")
+
             self.audio.playFile(os.path.dirname(os.path.realpath(__file__))+ '/sp_cache/' + str(num) + '.wav')
-            # TODO: calculate length of sound file from samplerate and file size. sleep for that length.
-            self.speechlib.printme()
 
 
 
-    def getWavFromText(self, text='hello', fname='ttswavfile.wav', lang='en_US'):
+
+    def getWavFromText(self, text='hello', fname='ttswavfile.wav', lang='en_GB'):
 
         """ Uses local maryTTS server to get a wav file of
         """
@@ -84,7 +101,7 @@ class Speech:
         OUTPUT_TYPE = 'AUDIO'
         AUDIO = 'WAVE_FILE'
         LOCALE = lang
-        VOICE = 'cmu-slt-hsmm'
+        VOICE = 'dfki-prudence'
 
         payload = {'VOICE': VOICE,
                    'LOCALE': LOCALE,
@@ -94,27 +111,26 @@ class Speech:
                    'INPUT_TEXT': INPUT_TEXT
                    }
 
+        self.log.msg("Downloading wav of \"" + text + "\" from MaryTTS server")
+
         # get Text to speech wav file from maryTTS server using REST api
         attempts = 10
         while attempts > 0:
             try:
                 r = requests.get('http://' + IPADDRESS + ':' + PORT + '/process', params=payload)
                 # r = requests.get("http://192.168.1.14:59125/process?INPUT_TEXT=Hello+world&INPUT_TYPE=TEXT&OUTPUT_TYPE=AUDIO&AUDIO=WAVE_FILE&LOCALE=en_US")
-                print r.status_code
-                print r.headers
-                print r.url
+                #print r.status_code
+                #print r.headers
+                #print r.url
 
                 # create the wav
                 self.audio.createWav(fname, r)
-                print "wav file created."
-
-                # get length of time for wave file  length = numbytes / (samplerate * channels * bps/8)
-                print self.audio.getWavSize(r)
-                print self.audio.getWavLength(r)  # seconds TDO: make these read wav info and not header info
+                (filepath, filename) = os.path.split(fname)
+                self.log.msg("file ./sp_cache/" + filename + " created " + "[%.2f MB] " % self.audio.getWavSize(r) + "(%.2f Seconds)" % self.audio.getWavLength(r))
 
                 break
             except:
                 attempts -= 1
                 if attempts == 0:
-                    print "maryTTS REST timout"
+                    self.log.msg("[speech] maryTTS REST request timout",'FAILURE')
                 #raise

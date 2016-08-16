@@ -7,7 +7,7 @@ import zero
 def main():
     z = zero.Zero()
     done = False
-    print("running zero")
+
     while not done:
         z.run()
         done = z.isdone()

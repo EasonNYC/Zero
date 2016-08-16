@@ -1,30 +1,35 @@
 import datetime
 import random
 
-#names stuff
-names = {1: "Mister Smith",
-        2: "Sir",
+#names
+realname = "Eason"
+names = {1: realname,
+        2: "sir",
         3: "Master Smith",
-        4: "Mister Easson",
-        5: "Sire"
+        4: "Mister Smith",
+        5: "your majesty"
         } 
 
 #############################################
 class Person:
-    lastcalled = "thelastthingyoucalledme"
+    lastcalled = "thelastthingzerocalledme"
     lastGreeting = datetime.datetime.now()
     
-    def __init__(self,ID,name):
+    def __init__(self, ID, nicks):
         self.ID = ID
-        self.n = name
+        self.name = realname
+        self.nicks = nicks
 
     def getName(self):
+        return self.name
+
+    def getNick(self):
         #returns a random name of the person
-        x = random.choice(list(self.n.values()))
+        x = random.choice(list(self.nicks.values()))
         
         #insures the same name wont be called twice
         while x == self.lastcalled:
-            x = random.choice(list(self.n.values()))
+            x = random.choice(list(self.nicks.values()))
         self.lastcalled = x 
 
         return x

@@ -11,7 +11,8 @@ class Sound:
         self.FILE_DIR = os.path.dirname(os.path.realpath(__file__))+'/sp_cache/'
 
         #this is needed in init for playback
-        pygame.mixer.pre_init(48000, 16, 1, 4096)
+        #pygame.mixer.pre_init(48000, 16, 1, 4096) #cmu slt
+        pygame.mixer.pre_init(16000, 16, 1, 4096)  # dfki TODO:test for dfki vs cmu
         pygame.display.set_mode((200,100))
 
     #returns exit condition
@@ -74,10 +75,10 @@ class Sound:
         size = rh.headers["Content-Length"]
         return float(size) / 1000.0 / 1000.0
 
-    #return length of speech file in seconds given a number of bytes
+    #return length of speech file in seconds given a number of bytes TODO: get rid of magic numbers
     def getWavLength(self, rh):
         size = rh.headers["Content-Length"]
-        return float(size) / (48000 * 1 * (16 / 8))
+        return float(size) / (16000 * 1 * (16 / 8))
         print time  # seconds
 
 

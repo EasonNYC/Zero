@@ -1,4 +1,5 @@
 
+import zmsg
 import person
 import speech
 import datetime
@@ -12,9 +13,17 @@ import random
 Eason = person.Person(1, person.names)
 
 
+def Say(text):
+    s = speech.Speech(True)
+    s.say(text)
+
 class Zero:
     def __init__(self):
-        self.voice = speech.Speech()  # activate speech module
+        self.name = "ZERO"
+        self.log = zmsg.Zmsg(self.name)
+
+        self.voice = speech.Speech(False)  # activate speech module
+        self.voice.say("Zero has booted. All systems are functioning nominally.")
         self.greet(Eason)
         self.done = False
 
@@ -28,55 +37,72 @@ class Zero:
         return self.voice.isdone()
 
     def greet(self, person):
-        # say a greeting to the person you recognize in the camera
+        # say a greeting to the person you recognize in the camera TODO: make this into its own module
 
         if person.greetMe():
-            greetings = {1: "Hello " + person.getName(),
-                         2: "How are you today, " + person.getName() + "?",
-                         3: "Lovely " + self.get_time_of_day() + ", " + person.getName(),
-                         4: "Good " + self.get_time_of_day() + ", " + person.getName(),
-                         5: "Hello",
-                         6: "Good to see you, " + person.getName()
+            self.log.msg("Greeeting " + person.getName())
+
+            greetings = {1: "Hello " + person.getNick(),
+                         2: "How are you today, " + person.getNick() + "?",
+                         3: "Lovely " + self.get_time_of_day() + ", " + person.getNick(),
+                         4: "Good " + self.get_time_of_day() + ", " + person.getNick(),
+                         5: "Hello there",
+                         6: "Good to see you, " + person.getNick()
                          }
             greeting = random.choice(list(greetings.values()))
             self.voice.say(greeting)
+
+            self.log.msg("Getting the current time")
+            self.voice.say("The time is " + self.get_time())
+
+
         else:
-            return
+            self.log.msg("Skip greeeting " + person.getNick())
 
-    def get_time(self):
+
+
+
+    def get_time(self):  #TODO: make this into its own module
         # return a speech string of the date and time
-
+        self.log.msg("getting time of day")
         now = datetime.datetime.now()
 
+        pre =''
+        post = ''
         hour = now.hour % 12
+
+        if hour is 0:
+            hour = 12
+
         if 0 <= now.minute < 4:
             pre = 'now'
-            post = 'O clock'
+            post = 'oclock'
+
         elif 4 <= now.minute < 16:
             pre = 'just after'
-            post = 'O clock'
-        elif 17 <= now.minute < 29:
-            pre = 'almost'
+            post = 'oclock'
 
+        elif 16 <= now.minute < 29:
+            pre = 'almost'
             post = 'thirty'
+
             if now.hour < 12:
-                post += ' A M'
+                post += ' aay emm'
             else:
-                post += ' P M'
+                post += ' pee emm'
         elif 30 <= now.minute < 32:
-            pre = ''
+            pre = 'near'
             post = 'thirty'
             if now.hour < 12:
-                post += ' A M'
+                post += ' aay emm'
             else:
-                post += ' P M'
+                post += ' pee emm'
         elif 33 <= now.minute < 44:
-            pre = 'well past'
+            pre = 'just past'
             post = 'thirty in the ' + self.get_time_of_day()
         elif 45 <= now.minute < 60:
             pre = 'almost'
-            hour = (now.hour + 1) % 12
-            post = 'O clock in the ' + self.get_time_of_day()
+            post = 'oclock in the ' + self.get_time_of_day()
 
         x = pre + ' ' + str(hour) + ' ' + post
 
